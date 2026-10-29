@@ -5,7 +5,7 @@ package.domain = com.imran.zoya
 source.dir = .
 source.include_exts = py,kv,png,jpg,atlas,json,txt,svg
 version = 1.0.2
-requirements = python3,kivy,plyer
+requirements = python3,kivy==2.1.0,plyer
 orientation = portrait
 fullscreen = 0
 icon.filename = assets/zoya_ai.png
