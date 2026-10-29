@@ -4,7 +4,7 @@ package.name = zoyaassistant
 package.domain = com.imran.zoya
 source.dir = .
 source.include_exts = py,kv,png,jpg,atlas,json,txt,svg
-version = 1.0.1
+version = 1.0.2
 requirements = python3,kivy,plyer
 orientation = portrait
 fullscreen = 0
@@ -16,6 +16,7 @@ android.ndk = 27c
 android.archs = arm64-v8a, armeabi-v7a
 android.accept_sdk_license = True
 p4a.bootstrap = sdl2
+p4a.branch = v2024.01.21
 android.allow_backup = False
 [buildozer]
 log_level = 2
