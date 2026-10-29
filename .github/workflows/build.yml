@@ -20,14 +20,15 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Install build dependencies
+      - name: Install build dependencies and image converter
         run: |
           sudo apt-get update
           sudo apt-get install -y git zip unzip autoconf libtool pkg-config \
             zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake \
             libffi-dev libssl-dev build-essential ccache
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install "Cython==0.29.36" buildozer
+          python3 -m pip install "Cython==0.29.36" buildozer cairosvg
+          python3 -c "import cairosvg; cairosvg.svg2png(url='assets/zoya_ai.svg', write_to='assets/zoya_ai.png', output_width=512, output_height=512)"
       - name: Build debug APK
         run: buildozer android debug
       - name: Upload APK artifact
