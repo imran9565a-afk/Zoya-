@@ -1,0 +1,39 @@
+name: Build ZOYA Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo6 cmake \
+            libffi-dev libssl-dev build-essential ccache
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install "Cython==0.29.36" buildozer
+      - name: Build debug APK
+        run: buildozer android debug
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zoya-debug-apk
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 14
