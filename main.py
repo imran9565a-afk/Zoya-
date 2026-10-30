@@ -18,6 +18,12 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
+from kivy.uix.image import Image as KivyImage
+
+try:
+    from plyer import stt, filechooser
+except Exception:
+    stt = filechooser = None
 
 try:
     from plyer import battery, call, flash, vibrator, tts
@@ -66,6 +72,7 @@ class ZoyaApp(App):
         self.flash_state = False
         self.password = "imran273304"  # Change this in your own private build.
         self.chat_history = []
+        self.attached_image = None
         self.api_key = ""
         try:
             with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "r", encoding="utf-8") as settings_file:
@@ -82,6 +89,10 @@ class ZoyaApp(App):
         root.add_widget(Label(text="[b]ZOYA AI[/b]", markup=True, font_size=30,
                               color=(0.25, 0.7, 1, 1), size_hint_y=None, height=52))
         self.add_button(root, "GEMINI / GOOGLE SEARCH SETTINGS", self.set_api_key, height=42)
+        media_row = self.row(root, 42)
+        self.add_button(media_row, "ATTACH PHOTO", self.pick_image)
+        self.add_button(media_row, "VOICE INPUT", self.voice_input)
+        self.add_button(media_row, "GENERATE IMAGE", self.generate_image)
         self.status = Label(
             text="Assalamualaikum! Main Zoya hoon.\nInternet answers need a connection.",
             halign="center", valign="middle", size_hint_y=None, height=72)
@@ -89,7 +100,7 @@ class ZoyaApp(App):
         root.add_widget(self.status)
 
         row = self.row(root, 46)
-        self.search_input = TextInput(hint_text="Ask a question...", multiline=False)
+        self.search_input = TextInput(hint_text="Ask ZOYA anything...", multiline=False)
         self.search_input.bind(on_text_validate=self.perform_search)
         row.add_widget(self.search_input)
         self.add_button(row, "ASK", self.perform_search, 78)
@@ -277,55 +288,136 @@ class ZoyaApp(App):
             self.get_battery_status(); return
         if "vibrate" in lower:
             self.trigger_vibrate(); return
-        self.set_status("Searching the web for a short answer...")
-        threading.Thread(target=self.fetch_answer, args=(query,), daemon=True).start()
+        self.set_status("ZOYA is thinking...")
+        threading.Thread(target=self.fetch_answer, args=(query, self.attached_image), daemon=True).start()
 
-    def fetch_answer(self, query):
+    def fetch_answer(self, query, image_path=None):
         if not self.api_key:
-            Clock.schedule_once(lambda dt: self.set_status(
-                "Connect Gemini first: tap GEMINI / GOOGLE SEARCH SETTINGS and add your Google AI Studio API key."), 0)
+            Clock.schedule_once(lambda dt: self.set_status("Connect Gemini first in settings and add your Google AI Studio API key."), 0)
             return
         answer = ""
         try:
-            history_text = ""
+            history = []
             for item in self.chat_history[-8:]:
-                history_text += "User: " + item["user"] + "\nZOYA: " + item["assistant"] + "\n"
-            prompt = ("You are ZOYA, a helpful and accurate AI assistant. Reply in the user's language. "
-                      "Explain clearly, admit uncertainty, and use Google Search for current facts.\n\n"
-                      + history_text + "User: " + query)
+                history.append({"role": "user", "parts": [{"text": item["user"]}]})
+                history.append({"role": "model", "parts": [{"text": item["assistant"]}]})
+            parts = [{"text": query}]
+            if image_path:
+                import base64, mimetypes
+                with open(image_path, "rb") as img:
+                    raw = img.read()
+                mime = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+                parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(raw).decode("ascii")}})
+            contents = history + [{"role": "user", "parts": parts}]
             payload = {
-                "model": "gemini-3.8-flash",
-                "input": prompt,
-                "tools": [{"type": "google_search"}]
+                "system_instruction": {"parts": [{"text": "You are ZOYA, a helpful, accurate multilingual AI assistant. Reply in the user's language. Explain clearly, admit uncertainty, and use Google Search for current facts. If an image is attached, describe and analyze it carefully."}]},
+                "contents": contents,
+                "tools": [{"google_search": {}}],
+                "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}
             }
             req = urllib.request.Request(
-                "https://generativelanguage.googleapis.com/v1beta/interactions",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
                 method="POST")
-            with urllib.request.urlopen(req, timeout=60) as response:
+            with urllib.request.urlopen(req, timeout=90) as response:
                 data = json.loads(response.read().decode("utf-8"))
-            parts = []
-            citations = []
-            for step in data.get("steps", []):
-                if step.get("type") == "model_output":
-                    for block in step.get("content", []):
-                        if block.get("type") == "text":
-                            if block.get("text"):
-                                parts.append(block["text"])
-                            for annotation in block.get("annotations", []):
-                                if annotation.get("type") == "url_citation" and annotation.get("url"):
-                                    citations.append((annotation.get("title") or annotation["url"]) + ": " + annotation["url"])
-            answer = "\n".join(parts).strip()
-            if citations:
-                answer += "\n\nSources:\n" + "\n".join(dict.fromkeys(citations)[:5])
+            candidates = data.get("candidates", [])
+            if candidates:
+                answer = "\n".join(p.get("text", "") for p in candidates[0].get("content", {}).get("parts", []) if p.get("text")).strip()
+            grounding = candidates[0].get("groundingMetadata", {}) if candidates else {}
+            chunks = grounding.get("groundingChunks", [])
+            links = []
+            for chunk in chunks:
+                web = chunk.get("web", {})
+                if web.get("uri"):
+                    links.append((web.get("title") or "Source") + ": " + web["uri"])
+            if links:
+                answer += "\n\nSources:\n" + "\n".join(dict.fromkeys(links)[:5])
             if not answer:
                 answer = "Gemini returned no text. Please try again."
             self.chat_history.append({"user": query, "assistant": answer})
             self.chat_history = self.chat_history[-8:]
+            self.attached_image = None
         except Exception as exc:
-            answer = "AI connection failed: " + str(exc) + "\nCheck your internet, API key and Google AI Studio quota."
+            answer = "AI connection failed: " + str(exc) + "\nCheck API key, internet and Google AI Studio quota."
         Clock.schedule_once(lambda dt: self.set_status("ZOYA: " + answer), 0)
+
+    def pick_image(self, *_):
+        if filechooser is None:
+            self.set_status("Photo picker is unavailable in this build.")
+            return
+        try:
+            filechooser.open_file(on_selection=self.image_selected, filters=["*.png", "*.jpg", "*.jpeg", "*.webp"])
+            self.set_status("Choose a photo. Then type what you want ZOYA to do with it.")
+        except Exception as exc:
+            self.set_status("Could not open photo picker: " + str(exc))
+
+    def image_selected(self, selection):
+        if selection:
+            self.attached_image = selection[0]
+            self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask ZOYA about it.")
+
+    def voice_input(self, *_):
+        if stt is None:
+            self.set_status("Voice recognition is unavailable in this build. Use the keyboard microphone if your Android keyboard provides it.")
+            return
+        try:
+            stt.start()
+            self.set_status("Listening... speak your question.")
+        except Exception as exc:
+            self.set_status("Voice input failed: " + str(exc))
+
+    def generate_image(self, *_):
+        prompt = self.search_input.text.strip()
+        if not prompt:
+            self.set_status("Type an image description in the question box first.")
+            return
+        if not self.api_key:
+            self.set_status("Add your Gemini API key in settings first.")
+            return
+        self.set_status("Generating image... this may take a little while.")
+        threading.Thread(target=self._generate_image_worker, args=(prompt,), daemon=True).start()
+
+    def _generate_image_worker(self, prompt):
+        try:
+            payload = {
+                "contents": [{"parts": [{"text": "Create a high-quality image based on this prompt: " + prompt}]}],
+                "generationConfig": {"responseModalities": ["TEXT", "IMAGE"]}
+            }
+            req = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-nano-banana-2.1:generateContent",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+                method="POST")
+            with urllib.request.urlopen(req, timeout=180) as response:
+                data = json.loads(response.read().decode("utf-8"))
+            saved = None
+            for candidate in data.get("candidates", []):
+                for part in candidate.get("content", {}).get("parts", []):
+                    inline = part.get("inlineData") or part.get("inline_data")
+                    if inline and inline.get("data"):
+                        import base64
+                        mime = inline.get("mimeType") or inline.get("mime_type") or "image/png"
+                        ext = ".jpg" if "jpeg" in mime else ".png"
+                        saved = os.path.join(self.user_data_dir, "zoya_generated" + ext)
+                        with open(saved, "wb") as image_file:
+                            image_file.write(base64.b64decode(inline["data"]))
+                        break
+            if saved:
+                Clock.schedule_once(lambda dt: self.show_generated_image(saved), 0)
+            else:
+                Clock.schedule_once(lambda dt: self.set_status("No image was returned. Check model access and API quota."), 0)
+        except Exception as exc:
+            message = "Image generation failed: " + str(exc)
+            Clock.schedule_once(lambda dt: self.set_status(message), 0)
+
+    def show_generated_image(self, path):
+        layout = BoxLayout(orientation="vertical", padding=8, spacing=8)
+        layout.add_widget(KivyImage(source=path, allow_stretch=True, keep_ratio=True))
+        popup = Popup(title="ZOYA generated image", content=layout, size_hint=(0.95, 0.9))
+        popup.open()
+        self.set_status("Image generated and saved in ZOYA's private app storage.")
 
     def calculate(self, *_):
         try:
