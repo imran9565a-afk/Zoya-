@@ -1,5 +1,6 @@
 import ast
 import json
+import os
 import math
 import operator as op
 import threading
@@ -64,6 +65,13 @@ class ZoyaApp(App):
         self.todo_list = []
         self.flash_state = False
         self.password = "imran273304"  # Change this in your own private build.
+        self.chat_history = []
+        self.api_key = ""
+        try:
+            with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "r", encoding="utf-8") as settings_file:
+                self.api_key = json.load(settings_file).get("gemini_api_key", "")
+        except Exception:
+            pass
 
         scroll = ScrollView()
         root = BoxLayout(orientation="vertical", padding=12, spacing=8,
@@ -71,8 +79,9 @@ class ZoyaApp(App):
         root.bind(minimum_height=root.setter("height"))
         scroll.add_widget(root)
 
-        root.add_widget(Label(text="[b]ZOYA[/b]", markup=True, font_size=28,
-                              color=(0.25, 0.7, 1, 1), size_hint_y=None, height=48))
+        root.add_widget(Label(text="[b]ZOYA AI[/b]", markup=True, font_size=30,
+                              color=(0.25, 0.7, 1, 1), size_hint_y=None, height=52))
+        self.add_button(root, "GEMINI / GOOGLE SEARCH SETTINGS", self.set_api_key, height=42)
         self.status = Label(
             text="Assalamualaikum! Main Zoya hoon.\nInternet answers need a connection.",
             halign="center", valign="middle", size_hint_y=None, height=72)
@@ -149,6 +158,31 @@ class ZoyaApp(App):
             self.set_status("Opening website: " + url)
         except Exception as exc:
             self.set_status("Could not open website: " + str(exc))
+
+    def set_api_key(self, *_):
+        layout = BoxLayout(orientation="vertical", padding=12, spacing=8)
+        entry = TextInput(text=self.api_key, hint_text="Paste your Google Gemini API key",
+                          password=True, multiline=False)
+        layout.add_widget(Label(text="Get a key from Google AI Studio. It is stored privately on this device."))
+        layout.add_widget(entry)
+        popup = Popup(title="ZOYA AI connection", content=layout, size_hint=(0.92, 0.48))
+        def save(*_):
+            key = entry.text.strip()
+            if not key:
+                self.set_status("Please enter a Gemini API key.")
+                return
+            try:
+                os.makedirs(self.user_data_dir, exist_ok=True)
+                with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "w", encoding="utf-8") as settings_file:
+                    json.dump({"gemini_api_key": key}, settings_file)
+                self.api_key = key
+                self.chat_history = []
+                self.set_status("Gemini connected. Ask ZOYA anything.")
+                popup.dismiss()
+            except Exception as exc:
+                self.set_status("Could not save settings: " + str(exc))
+        self.add_button(layout, "SAVE & CONNECT", save, height=44)
+        popup.open()
 
     def open_insta_popup(self, *_):
         layout = BoxLayout(orientation="vertical", padding=12, spacing=8)
@@ -247,23 +281,50 @@ class ZoyaApp(App):
         threading.Thread(target=self.fetch_answer, args=(query,), daemon=True).start()
 
     def fetch_answer(self, query):
+        if not self.api_key:
+            Clock.schedule_once(lambda dt: self.set_status(
+                "Connect Gemini first: tap GEMINI / GOOGLE SEARCH SETTINGS and add your Google AI Studio API key."), 0)
+            return
         answer = ""
         try:
-            url = "https://api.duckduckgo.com/?" + urllib.parse.urlencode(
-                {"q": query, "format": "json", "no_html": "1", "skip_disambig": "1"})
-            req = urllib.request.Request(url, headers={"User-Agent": "ZOYA-Assistant/1.0"})
-            with urllib.request.urlopen(req, timeout=12) as response:
+            history_text = ""
+            for item in self.chat_history[-8:]:
+                history_text += "User: " + item["user"] + "\nZOYA: " + item["assistant"] + "\n"
+            prompt = ("You are ZOYA, a helpful and accurate AI assistant. Reply in the user's language. "
+                      "Explain clearly, admit uncertainty, and use Google Search for current facts.\n\n"
+                      + history_text + "User: " + query)
+            payload = {
+                "model": "gemini-3.8-flash",
+                "input": prompt,
+                "tools": [{"type": "google_search"}]
+            }
+            req = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/interactions",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+                method="POST")
+            with urllib.request.urlopen(req, timeout=60) as response:
                 data = json.loads(response.read().decode("utf-8"))
-            answer = data.get("AbstractText") or ""
+            parts = []
+            citations = []
+            for step in data.get("steps", []):
+                if step.get("type") == "model_output":
+                    for block in step.get("content", []):
+                        if block.get("type") == "text":
+                            if block.get("text"):
+                                parts.append(block["text"])
+                            for annotation in block.get("annotations", []):
+                                if annotation.get("type") == "url_citation" and annotation.get("url"):
+                                    citations.append((annotation.get("title") or annotation["url"]) + ": " + annotation["url"])
+            answer = "\n".join(parts).strip()
+            if citations:
+                answer += "\n\nSources:\n" + "\n".join(dict.fromkeys(citations)[:5])
             if not answer:
-                for item in data.get("RelatedTopics", []):
-                    if isinstance(item, dict) and item.get("Text"):
-                        answer = item["Text"]
-                        break
-            if not answer:
-                answer = "No short answer was returned. Try opening Google for more results."
-        except Exception:
-            answer = "Could not fetch an answer. Check your internet connection and try again."
+                answer = "Gemini returned no text. Please try again."
+            self.chat_history.append({"user": query, "assistant": answer})
+            self.chat_history = self.chat_history[-8:]
+        except Exception as exc:
+            answer = "AI connection failed: " + str(exc) + "\nCheck your internet, API key and Google AI Studio quota."
         Clock.schedule_once(lambda dt: self.set_status("ZOYA: " + answer), 0)
 
     def calculate(self, *_):
