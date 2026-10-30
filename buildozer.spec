@@ -1,10 +1,10 @@
 [app]
-title = ZOYA Smart Assistant
+title = ZOYA AI Assistant
 package.name = zoyaassistant
 package.domain = com.imran.zoya
 source.dir = .
 source.include_exts = py,kv,png,jpg,atlas,json,txt,svg
-version = 1.0.2
+version = 2.0.0
 requirements = python3,kivy==2.1.0,plyer
 orientation = portrait
 fullscreen = 0
