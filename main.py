@@ -56,7 +56,7 @@ def safe_calculate(expression):
     return visit(tree)
 
 class ZoyaApp(App):
-    title = "ZOYA Smart Assistant"
+    title = "ZOYA AI Assistant"
 
     def build(self):
         Window.clearcolor = (0.04, 0.05, 0.09, 1)
@@ -404,13 +404,14 @@ class ZoyaApp(App):
         popup.open()
 
     def help(self, *_):
-        message = ("ZOYA HELP\n\n"
-                   "• Ask: searches DuckDuckGo Instant Answer API; not a full AI chatbot.\n"
+        message = ("ZOYA AI HELP\n\n"
+                   "• Ask: Gemini AI with Google Search grounding. Add your own API key in settings.\n"
                    "• Calculator: supports basic arithmetic and parentheses.\n"
                    "• Call, battery, vibration and torch depend on Android permissions and device support.\n"
+                   "• Phone access is limited to features you choose; Android controls permissions.\n"
                    "• Alarm runs only while this app is alive; it is not a system alarm.\n"
                    "• To-do items are temporary and reset when the app restarts.\n"
-                   "• Voice recognition is not implemented in this build.")
+                   "• Text chat is available; voice recognition is not implemented yet.")
         Popup(title="Help", content=Label(text=message), size_hint=(0.9, 0.7)).open()
 
     def on_stop(self):
