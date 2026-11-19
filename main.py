@@ -62,7 +62,7 @@ def safe_calculate(expression):
     return visit(tree)
 
 class ZoyaApp(App):
-    title = "ZOYA AI Assistant"
+    title = "ZOYA"
 
     def build(self):
         Window.clearcolor = (0.04, 0.05, 0.09, 1)
@@ -70,7 +70,7 @@ class ZoyaApp(App):
         self.alarm_event = None
         self.todo_list = []
         self.flash_state = False
-        self.password = "imran273304"  # Change this in your own private build.
+        self.password = ""  # Set a private password in your own local build; no shared default.
         self.chat_history = []
         self.attached_image = None
         self.api_key = ""
@@ -341,7 +341,11 @@ class ZoyaApp(App):
             self.attached_image = None
         except Exception as exc:
             answer = "AI connection failed: " + str(exc) + "\nCheck API key, internet and Google AI Studio quota."
-        Clock.schedule_once(lambda dt: self.set_status("ZOYA: " + answer), 0)
+        Clock.schedule_once(lambda dt: self.deliver_answer(answer), 0)
+
+    def deliver_answer(self, answer):
+        self.set_status("ZOYA: " + answer)
+        self.speak(answer)
 
     def pick_image(self, *_):
         if filechooser is None:
