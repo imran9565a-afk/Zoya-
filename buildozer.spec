@@ -1,15 +1,15 @@
 [app]
-title = ZOYA AI Assistant
+title = ZOYA
 package.name = zoyaassistant
 package.domain = com.imran.zoya
 source.dir = .
 source.include_exts = py,kv,png,jpg,atlas,json,txt,svg
-version = 2.0.0
+version = 3.0.0
 requirements = python3,kivy==2.1.0,plyer
 orientation = portrait
 fullscreen = 0
 icon.filename = assets/zoya_ai.png
-android.permissions = INTERNET,CALL_PHONE,VIBRATE,CAMERA
+android.permissions = INTERNET,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,CALL_PHONE,VIBRATE,CAMERA
 android.api = 35
 android.minapi = 23
 android.ndk = 25b
