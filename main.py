@@ -73,6 +73,8 @@ class ZoyaApp(App):
         self.password = ""  # Set a private password in your own local build; no shared default.
         self.chat_history = []
         self.attached_image = None
+        self.voice_language = "hi-IN"
+        self.voice_event = None
         self.api_key = ""
         try:
             with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "r", encoding="utf-8") as settings_file:
