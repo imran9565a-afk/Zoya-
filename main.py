@@ -92,6 +92,7 @@ class ZoyaApp(App):
         media_row = self.row(root, 42)
         self.add_button(media_row, "ATTACH PHOTO", self.pick_image)
         self.add_button(media_row, "VOICE INPUT", self.voice_input)
+        self.add_button(media_row, "VOICE: HI/EN", self.toggle_voice_language)
         self.add_button(media_row, "GENERATE IMAGE", self.generate_image)
         self.status = Label(
             text="Assalamualaikum! Main Zoya hoon.\nInternet answers need a connection.",
@@ -333,7 +334,7 @@ class ZoyaApp(App):
                 if web.get("uri"):
                     links.append((web.get("title") or "Source") + ": " + web["uri"])
             if links:
-                answer += "\n\nSources:\n" + "\n".join(dict.fromkeys(links)[:5])
+                answer += "\n\nSources:\n" + "\n".join(list(dict.fromkeys(links))[:5])
             if not answer:
                 answer = "Gemini returned no text. Please try again."
             self.chat_history.append({"user": query, "assistant": answer})
@@ -362,15 +363,53 @@ class ZoyaApp(App):
             self.attached_image = selection[0]
             self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask ZOYA about it.")
 
+    def toggle_voice_language(self, *_):
+        self.voice_language = "en-US" if self.voice_language == "hi-IN" else "hi-IN"
+        label = "Hindi" if self.voice_language == "hi-IN" else "English"
+        self.set_status("Voice recognition language: " + label)
+
     def voice_input(self, *_):
         if stt is None:
-            self.set_status("Voice recognition is unavailable in this build. Use the keyboard microphone if your Android keyboard provides it.")
+            self.set_status("Voice recognition is unavailable. Use the Android keyboard microphone.")
             return
         try:
+            if hasattr(stt, "exist") and not stt.exist():
+                self.set_status("No Android speech-recognition service found. Install/enable Google speech services.")
+                return
+            # Plyer's Android recognizer accepts the Android BCP-47 language tag.
+            stt._language = self.voice_language
             stt.start()
-            self.set_status("Listening... speak your question.")
+            self.set_status("Listening... speak now. Tap VOICE INPUT again to stop if needed.")
+            if self.voice_event:
+                self.voice_event.cancel()
+            self.voice_event = Clock.schedule_interval(self._poll_voice_input, 0.25)
         except Exception as exc:
             self.set_status("Voice input failed: " + str(exc))
+
+    def _poll_voice_input(self, _dt):
+        try:
+            if stt is not None and stt.listening:
+                partial = getattr(stt, "partial_results", [])
+                if partial:
+                    self.set_status("Listening: " + str(partial[-1]))
+                return True
+            if self.voice_event:
+                self.voice_event.cancel()
+                self.voice_event = None
+            results = getattr(stt, "results", []) if stt is not None else []
+            if results:
+                self.search_input.text = str(results[0]).strip()
+                self.perform_search()
+            else:
+                errors = getattr(stt, "errors", []) if stt is not None else []
+                self.set_status("Could not recognize speech. " + (str(errors[-1]) if errors else "Please try again."))
+            return False
+        except Exception as exc:
+            if self.voice_event:
+                self.voice_event.cancel()
+                self.voice_event = None
+            self.set_status("Voice input error: " + str(exc))
+            return False
 
     def generate_image(self, *_):
         prompt = self.search_input.text.strip()
