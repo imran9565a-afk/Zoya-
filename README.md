@@ -1,72 +1,66 @@
-# ZOYA — Android AI Assistant
+# Maya — Android AI Assistant
 
-ZOYA is an Android assistant project built with Python/Kivy and GitHub Actions. It uses the Google Gemini API for AI answers.
+Maya is an Android assistant built with Python/Kivy and GitHub Actions. It uses the Google Gemini API for multilingual AI answers.
 
-## Current features
+## Included features
 
 - Gemini-powered Hindi and English question answering
-- Recent-turn conversation context while the app remains open
-- Google Search grounding for supported current-information requests
-- Photo attachment and image-question requests (subject to the selected model/API access)
+- Recent conversation context while the app remains open
+- Image attachment and image-question requests
 - Safe arithmetic calculator
-- Spoken replies through the available Android text-to-speech service
-- Voice-input button using the platform speech-recognition bridge when supported; otherwise use the Android keyboard microphone
-- Phone utilities such as battery, vibration, flashlight and user-triggered calling where Android permissions and device support allow
+- Android text-to-speech replies and Android speech-recognition input (device/service dependent)
+- Battery, vibration, flashlight and user-triggered calling where Android permissions and device support allow
 - Google, YouTube and Instagram shortcuts
+- To-do list, alarm, password-lock screen and Instagram hashtag/bio helper
 - GitHub Actions debug APK build
 
-## Setup from Termux (Android phone)
+## Build the APK
 
-Install Termux from a trusted source, open it, then run:
+1. Open the [GitHub Actions page](https://github.com/imran9565a-afk/Zoya-/actions).
+2. Select **Build Maya Android APK** and choose **Run workflow**, or push a commit to `main`.
+3. Open the newest successful run and download the `maya-debug-apk` artifact.
+4. Extract the ZIP and install the APK on Android.
+
+## Connect Gemini
+
+1. Create an API key in [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Install and open Maya.
+3. Open **Gemini / Google Search Settings** and enter your key.
+4. Keep the key private. It is saved in Maya's private app data and is not committed to this repository.
+
+An API key stored in an APK/device is not a server-grade secret. Do not distribute an APK with your key prefilled. For a public multi-user service, use a secured backend proxy.
+
+## Termux source setup
 
 ```bash
 pkg update -y && pkg upgrade -y
 pkg install -y git
-git clone https://github.com/imran9565a-afk/Zoya-.git "$HOME/ZOYA"
-cd "$HOME/ZOYA"
+git clone https://github.com/imran9565a-afk/Zoya-.git "$HOME/MAYA"
+cd "$HOME/MAYA"
 bash termux_setup.sh
 ```
 
-If the repository is already cloned, run:
+If already cloned:
 
 ```bash
-cd "$HOME/ZOYA"
+cd "$HOME/MAYA"
 git pull --ff-only
 python -m py_compile main.py
 ```
 
-Termux is used to download and check the source. The Kivy Android GUI is packaged as an APK by GitHub Actions; running the APK build toolchain locally in Termux is not the supported build path.
+Termux downloads and checks source code. GitHub Actions builds the Android APK; the full Kivy Android build toolchain is not run locally in Termux.
 
-## Connect Gemini
+## Important limitations
 
-1. Create your own API key at https://aistudio.google.com/app/apikey.
-2. Install and open ZOYA.
-3. Open Gemini settings and enter your key.
-4. Keep the key private. It is saved in the app's private data directory and is not committed to this repository.
-
-API keys stored in an APK/device are not server-grade secrets. Do not put a shared key in source code or distribute an APK with your key prefilled. For a public multi-user service, use a secured backend proxy.
-
-## Build the APK
-
-1. Open https://github.com/imran9565a-afk/Zoya-/actions
-2. Select **Build ZOYA Android APK**.
-3. If GitHub asks, enable Actions.
-4. Open the newest run and wait for it to finish successfully.
-5. Download the `zoya-debug-apk` artifact, extract the ZIP, and install the APK.
-
-A push to `main` also starts the workflow automatically.
-
-## Important limits
-
-- ZOYA is a ChatGPT-style assistant client, not a copy of ChatGPT or its proprietary model/app.
-- AI answers require internet access and a working Gemini API key; model access, quotas and charges depend on Google.
-- Voice recognition availability depends on the Android speech service/device. If it does not return text, use the keyboard microphone; voice reply uses Android TTS when available.
-- Image generation, persistent cloud chat sync, background wake-word listening, full file reading, and unrestricted phone control are not included.
-- Phone actions require user interaction and Android permissions. ZOYA does not silently access private phone data.
+- Maya is an AI assistant client, not a copy of ChatGPT or its proprietary app/model.
+- AI replies require internet access and a valid Gemini API key. Model availability, quotas and charges depend on Google and the selected account.
+- Voice recognition and spoken replies depend on Android speech/TTS services and device support. Continuous wake-word listening and full-duplex live voice are not yet implemented.
+- Background wake-word listening, persistent cloud chat sync, unrestricted phone control and server-side multi-user key protection are not included.
+- Phone actions require user interaction and Android permissions.
 
 ## Main files
 
-- `main.py` — Kivy app, Gemini chat, image requests, utilities and speech output
-- `buildozer.spec` — Android package and permissions
+- `main.py` — Maya Kivy app, Gemini chat, image requests, utilities and speech support
+- `buildozer.spec` — Android package settings and permissions
 - `.github/workflows/build.yml` — GitHub Actions APK build
 - `termux_setup.sh` — Termux install/source-check helper
