@@ -1,5 +1,5 @@
 [app]
-title = MAYA
+title = Maya
 package.name = mayaassistant
 package.domain = com.imran.maya
 source.dir = .
@@ -8,7 +8,7 @@ version = 3.0.0
 requirements = python3,kivy==2.1.0,plyer
 orientation = portrait
 fullscreen = 0
-icon.filename = assets/maya_ai.png
+icon.filename = assets/maya.png
 android.permissions = INTERNET,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,CALL_PHONE,VIBRATE,CAMERA
 android.api = 35
 android.minapi = 23
