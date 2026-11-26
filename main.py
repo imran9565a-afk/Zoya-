@@ -61,8 +61,8 @@ def safe_calculate(expression):
         return value
     return visit(tree)
 
-class ZoyaApp(App):
-    title = "ZOYA"
+class MayaApp(App):
+    title = "MAYA"
 
     def build(self):
         Window.clearcolor = (0.04, 0.05, 0.09, 1)
@@ -77,7 +77,7 @@ class ZoyaApp(App):
         self.voice_event = None
         self.api_key = ""
         try:
-            with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "r", encoding="utf-8") as settings_file:
+            with open(os.path.join(self.user_data_dir, "maya_settings.json"), "r", encoding="utf-8") as settings_file:
                 self.api_key = json.load(settings_file).get("gemini_api_key", "")
         except Exception:
             pass
@@ -88,7 +88,7 @@ class ZoyaApp(App):
         root.bind(minimum_height=root.setter("height"))
         scroll.add_widget(root)
 
-        root.add_widget(Label(text="[b]ZOYA AI[/b]", markup=True, font_size=30,
+        root.add_widget(Label(text="[b]MAYA AI[/b]", markup=True, font_size=30,
                               color=(0.25, 0.7, 1, 1), size_hint_y=None, height=52))
         self.add_button(root, "GEMINI / GOOGLE SEARCH SETTINGS", self.set_api_key, height=42)
         media_row = self.row(root, 42)
@@ -97,13 +97,13 @@ class ZoyaApp(App):
         self.add_button(media_row, "VOICE: HI/EN", self.toggle_voice_language)
         self.add_button(media_row, "GENERATE IMAGE", self.generate_image)
         self.status = Label(
-            text="Assalamualaikum! Main Zoya hoon.\nInternet answers need a connection.",
+            text="Assalamualaikum! Main Maya hoon.\nInternet answers need a connection.",
             halign="center", valign="middle", size_hint_y=None, height=72)
         self.status.bind(width=lambda w, v: setattr(w, "text_size", (v - 12, None)))
         root.add_widget(self.status)
 
         row = self.row(root, 46)
-        self.search_input = TextInput(hint_text="Ask ZOYA anything...", multiline=False)
+        self.search_input = TextInput(hint_text="Ask MAYA anything...", multiline=False)
         self.search_input.bind(on_text_validate=self.perform_search)
         row.add_widget(self.search_input)
         self.add_button(row, "ASK", self.perform_search, 78)
@@ -179,7 +179,7 @@ class ZoyaApp(App):
                           password=True, multiline=False)
         layout.add_widget(Label(text="Get a key from Google AI Studio. It is stored privately on this device."))
         layout.add_widget(entry)
-        popup = Popup(title="ZOYA AI connection", content=layout, size_hint=(0.92, 0.48))
+        popup = Popup(title="MAYA AI connection", content=layout, size_hint=(0.92, 0.48))
         def save(*_):
             key = entry.text.strip()
             if not key:
@@ -187,11 +187,11 @@ class ZoyaApp(App):
                 return
             try:
                 os.makedirs(self.user_data_dir, exist_ok=True)
-                with open(os.path.join(self.user_data_dir, "zoya_settings.json"), "w", encoding="utf-8") as settings_file:
+                with open(os.path.join(self.user_data_dir, "maya_settings.json"), "w", encoding="utf-8") as settings_file:
                     json.dump({"gemini_api_key": key}, settings_file)
                 self.api_key = key
                 self.chat_history = []
-                self.set_status("Gemini connected. Ask ZOYA anything.")
+                self.set_status("Gemini connected. Ask MAYA anything.")
                 popup.dismiss()
             except Exception as exc:
                 self.set_status("Could not save settings: " + str(exc))
@@ -207,7 +207,7 @@ class ZoyaApp(App):
         layout.add_widget(topic)
         layout.add_widget(kind)
         layout.add_widget(result)
-        popup = Popup(title="ZOYA Insta Helper", content=layout, size_hint=(0.9, 0.7))
+        popup = Popup(title="MAYA Insta Helper", content=layout, size_hint=(0.9, 0.7))
         def generate(*_):
             words = topic.text.strip().replace("#", "").split()
             if not words:
@@ -282,16 +282,16 @@ class ZoyaApp(App):
             return
         lower = query.lower()
         if any(greet in lower for greet in ("assalam", "hello", "hi")):
-            answer = "Walaikum Assalam! Main Zoya hoon, aapki assistant."
+            answer = "Walaikum Assalam! Main Maya hoon, aapki assistant."
             self.set_status(answer); self.speak(answer); return
         if "who are you" in lower or "kaun ho" in lower:
-            answer = "Main Zoya hoon, aapki smart assistant."
+            answer = "Main Maya hoon, aapki smart assistant."
             self.set_status(answer); self.speak(answer); return
         if "battery" in lower:
             self.get_battery_status(); return
         if "vibrate" in lower:
             self.trigger_vibrate(); return
-        self.set_status("ZOYA is thinking...")
+        self.set_status("MAYA is thinking...")
         threading.Thread(target=self.fetch_answer, args=(query, self.attached_image), daemon=True).start()
 
     def fetch_answer(self, query, image_path=None):
@@ -313,7 +313,7 @@ class ZoyaApp(App):
                 parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(raw).decode("ascii")}})
             contents = history + [{"role": "user", "parts": parts}]
             payload = {
-                "system_instruction": {"parts": [{"text": "You are ZOYA, a helpful, accurate multilingual AI assistant. Reply in the user's language. Explain clearly, admit uncertainty, and use Google Search for current facts. If an image is attached, describe and analyze it carefully."}]},
+                "system_instruction": {"parts": [{"text": "You are MAYA, a helpful, accurate multilingual AI assistant. Reply in the user's language. Explain clearly, admit uncertainty, and use Google Search for current facts. If an image is attached, describe and analyze it carefully."}]},
                 "contents": contents,
                 "tools": [{"google_search": {}}],
                 "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}
@@ -347,7 +347,7 @@ class ZoyaApp(App):
         Clock.schedule_once(lambda dt: self.deliver_answer(answer), 0)
 
     def deliver_answer(self, answer):
-        self.set_status("ZOYA: " + answer)
+        self.set_status("MAYA: " + answer)
         self.speak(answer)
 
     def pick_image(self, *_):
@@ -356,14 +356,14 @@ class ZoyaApp(App):
             return
         try:
             filechooser.open_file(on_selection=self.image_selected, filters=["*.png", "*.jpg", "*.jpeg", "*.webp"])
-            self.set_status("Choose a photo. Then type what you want ZOYA to do with it.")
+            self.set_status("Choose a photo. Then type what you want MAYA to do with it.")
         except Exception as exc:
             self.set_status("Could not open photo picker: " + str(exc))
 
     def image_selected(self, selection):
         if selection:
             self.attached_image = selection[0]
-            self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask ZOYA about it.")
+            self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask MAYA about it.")
 
     def toggle_voice_language(self, *_):
         self.voice_language = "en-US" if self.voice_language == "hi-IN" else "hi-IN"
@@ -445,7 +445,7 @@ class ZoyaApp(App):
                         import base64
                         mime = inline.get("mimeType") or inline.get("mime_type") or "image/png"
                         ext = ".jpg" if "jpeg" in mime else ".png"
-                        saved = os.path.join(self.user_data_dir, "zoya_generated" + ext)
+                        saved = os.path.join(self.user_data_dir, "maya_generated" + ext)
                         with open(saved, "wb") as image_file:
                             image_file.write(base64.b64decode(inline["data"]))
                         break
@@ -460,9 +460,9 @@ class ZoyaApp(App):
     def show_generated_image(self, path):
         layout = BoxLayout(orientation="vertical", padding=8, spacing=8)
         layout.add_widget(KivyImage(source=path, allow_stretch=True, keep_ratio=True))
-        popup = Popup(title="ZOYA generated image", content=layout, size_hint=(0.95, 0.9))
+        popup = Popup(title="MAYA generated image", content=layout, size_hint=(0.95, 0.9))
         popup.open()
-        self.set_status("Image generated and saved in ZOYA's private app storage.")
+        self.set_status("Image generated and saved in MAYA's private app storage.")
 
     def calculate(self, *_):
         try:
@@ -530,7 +530,7 @@ class ZoyaApp(App):
         layout = BoxLayout(orientation="vertical", padding=12, spacing=8)
         entry = TextInput(hint_text="Enter password", password=True, multiline=False)
         layout.add_widget(entry)
-        popup = Popup(title="ZOYA password check", content=layout, size_hint=(0.9, 0.35))
+        popup = Popup(title="MAYA password check", content=layout, size_hint=(0.9, 0.35))
         def check(*_):
             if entry.text == self.password:
                 self.set_status("Password accepted.")
@@ -541,7 +541,7 @@ class ZoyaApp(App):
         popup.open()
 
     def help(self, *_):
-        message = ("ZOYA AI HELP\n\n"
+        message = ("MAYA AI HELP\n\n"
                    "• Ask: Gemini AI with Google Search grounding. Add your own API key in settings.\n"
                    "• Calculator: supports basic arithmetic and parentheses.\n"
                    "• Call, battery, vibration and torch depend on Android permissions and device support.\n"
@@ -561,4 +561,4 @@ class ZoyaApp(App):
                 pass
 
 if __name__ == "__main__":
-    ZoyaApp().run()
+    MayaApp().run()
