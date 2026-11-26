@@ -1,4 +1,4 @@
-name: Build ZOYA Android APK
+name: Build MAYA Android APK
 
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
             libffi-dev libssl-dev build-essential ccache
           python3 -m pip install --upgrade pip setuptools wheel
           python3 -m pip install "Cython==0.29.36" buildozer cairosvg
-          python3 -c "import cairosvg; cairosvg.svg2png(url='assets/zoya_ai.svg', write_to='assets/zoya_ai.png', output_width=512, output_height=512)"
+          python3 -c "import cairosvg; cairosvg.svg2png(url='assets/maya_ai.svg', write_to='assets/maya_ai.png', output_width=512, output_height=512)"
       - name: Check Python syntax
         run: python3 -m py_compile main.py
       - name: Build debug APK
@@ -36,7 +36,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zoya-debug-apk
+          name: maya-debug-apk
           path: bin/*.apk
           if-no-files-found: error
           retention-days: 14
