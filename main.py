@@ -2,6 +2,9 @@ import ast
 import json
 import os
 import math
+import base64
+import re
+import wave
 import operator as op
 import threading
 import urllib.parse
@@ -19,6 +22,7 @@ from kivy.uix.popup import Popup
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.textinput import TextInput
 from kivy.uix.image import Image as KivyImage
+from kivy.core.audio import SoundLoader
 
 try:
     from plyer import stt, filechooser
@@ -75,6 +79,9 @@ class MayaApp(App):
         self.attached_image = None
         self.voice_language = "hi-IN"
         self.voice_event = None
+        self.voice_sound = None
+        self.tts_model = "gemini-3.8-flash-lite-tts"
+        self.tts_voice = "Kore"
         self.api_key = ""
         try:
             with open(os.path.join(self.user_data_dir, "maya_settings.json"), "r", encoding="utf-8") as settings_file:
@@ -160,11 +167,86 @@ class MayaApp(App):
         self.status.text = str(message)
 
     def speak(self, message):
+        text = str(message).strip()
+        if not text:
+            return
+        # Gemini TTS uses the same private Gemini API key as chat.
+        # Android's installed TTS remains the offline/availability fallback.
+        if self.api_key:
+            threading.Thread(target=self._gemini_speak, args=(text[:450],), daemon=True).start()
+        else:
+            self._android_speak(text)
+
+    def _android_speak(self, message):
         if tts is not None:
             try:
-                tts.speak(message[:250])
+                tts.speak(str(message)[:450])
             except Exception:
                 pass
+
+    def _gemini_speak(self, message):
+        try:
+            payload = {
+                "contents": [{"parts": [{"text": message}]}],
+                "generationConfig": {
+                    "responseModalities": ["AUDIO"],
+                    "speechConfig": {
+                        "voiceConfig": {
+                            "prebuiltVoiceConfig": {"voiceName": self.tts_voice}
+                        }
+                    }
+                }
+            }
+            req = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/"
+                + self.tts_model + ":generateContent",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json", "x-goog-api-key": self.api_key},
+                method="POST")
+            with urllib.request.urlopen(req, timeout=45) as response:
+                data = json.loads(response.read().decode("utf-8"))
+            candidates = data.get("candidates", [])
+            parts = candidates[0].get("content", {}).get("parts", []) if candidates else []
+            audio_part = next((p for p in parts if p.get("inlineData", {}).get("data")
+                               or p.get("inline_data", {}).get("data")), None)
+            if not audio_part:
+                raise ValueError("Gemini TTS returned no audio")
+            inline = audio_part.get("inlineData") or audio_part.get("inline_data") or {}
+            raw = base64.b64decode(inline.get("data", ""))
+            mime = inline.get("mimeType") or inline.get("mime_type") or ""
+            if not raw:
+                raise ValueError("Gemini TTS returned empty audio")
+            os.makedirs(self.user_data_dir, exist_ok=True)
+            audio_path = os.path.join(self.user_data_dir, "maya_reply.wav")
+            if "wav" in mime.lower():
+                with open(audio_path, "wb") as audio_file:
+                    audio_file.write(raw)
+            else:
+                rate_match = re.search(r"rate=(\\d+)", mime)
+                sample_rate = int(rate_match.group(1)) if rate_match else 24000
+                with wave.open(audio_path, "wb") as wav_file:
+                    wav_file.setnchannels(1)
+                    wav_file.setsampwidth(2)
+                    wav_file.setframerate(sample_rate)
+                    wav_file.writeframes(raw)
+            Clock.schedule_once(lambda dt: self._play_gemini_audio(audio_path), 0)
+        except Exception:
+            Clock.schedule_once(lambda dt: self._android_speak(message), 0)
+
+    def _play_gemini_audio(self, audio_path):
+        try:
+            sound = SoundLoader.load(audio_path)
+            if sound is None:
+                raise RuntimeError("Android audio playback unavailable")
+            if self.voice_sound is not None:
+                try:
+                    self.voice_sound.stop()
+                except Exception:
+                    pass
+            self.voice_sound = sound
+            self.voice_sound.play()
+        except Exception:
+            self._android_speak("Gemini voice playback unavailable. Using Android voice.")
 
     def open_url(self, url):
         try:
@@ -548,7 +630,7 @@ class MayaApp(App):
                    "• Phone access is limited to features you choose; Android controls permissions.\n"
                    "• Alarm runs only while this app is alive; it is not a system alarm.\n"
                    "• To-do items are temporary and reset when the app restarts.\n"
-                   "• Text chat is available; voice recognition is not implemented yet.")
+                   "• Voice input uses Android speech recognition; replies use Gemini TTS (Kore voice) when connected, with Android TTS fallback.")
         Popup(title="Help", content=Label(text=message), size_hint=(0.9, 0.7)).open()
 
     def on_stop(self):
