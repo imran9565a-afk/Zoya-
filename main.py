@@ -62,7 +62,7 @@ def safe_calculate(expression):
     return visit(tree)
 
 class MayaApp(App):
-    title = "MAYA"
+    title = "Maya"
 
     def build(self):
         Window.clearcolor = (0.04, 0.05, 0.09, 1)
@@ -88,7 +88,7 @@ class MayaApp(App):
         root.bind(minimum_height=root.setter("height"))
         scroll.add_widget(root)
 
-        root.add_widget(Label(text="[b]MAYA AI[/b]", markup=True, font_size=30,
+        root.add_widget(Label(text="[b]Maya AI[/b]", markup=True, font_size=30,
                               color=(0.25, 0.7, 1, 1), size_hint_y=None, height=52))
         self.add_button(root, "GEMINI / GOOGLE SEARCH SETTINGS", self.set_api_key, height=42)
         media_row = self.row(root, 42)
@@ -103,7 +103,7 @@ class MayaApp(App):
         root.add_widget(self.status)
 
         row = self.row(root, 46)
-        self.search_input = TextInput(hint_text="Ask MAYA anything...", multiline=False)
+        self.search_input = TextInput(hint_text="Ask Maya anything...", multiline=False)
         self.search_input.bind(on_text_validate=self.perform_search)
         row.add_widget(self.search_input)
         self.add_button(row, "ASK", self.perform_search, 78)
@@ -179,7 +179,7 @@ class MayaApp(App):
                           password=True, multiline=False)
         layout.add_widget(Label(text="Get a key from Google AI Studio. It is stored privately on this device."))
         layout.add_widget(entry)
-        popup = Popup(title="MAYA AI connection", content=layout, size_hint=(0.92, 0.48))
+        popup = Popup(title="Maya AI connection", content=layout, size_hint=(0.92, 0.48))
         def save(*_):
             key = entry.text.strip()
             if not key:
@@ -191,7 +191,7 @@ class MayaApp(App):
                     json.dump({"gemini_api_key": key}, settings_file)
                 self.api_key = key
                 self.chat_history = []
-                self.set_status("Gemini connected. Ask MAYA anything.")
+                self.set_status("Gemini connected. Ask Maya anything.")
                 popup.dismiss()
             except Exception as exc:
                 self.set_status("Could not save settings: " + str(exc))
@@ -207,7 +207,7 @@ class MayaApp(App):
         layout.add_widget(topic)
         layout.add_widget(kind)
         layout.add_widget(result)
-        popup = Popup(title="MAYA Insta Helper", content=layout, size_hint=(0.9, 0.7))
+        popup = Popup(title="Maya Insta Helper", content=layout, size_hint=(0.9, 0.7))
         def generate(*_):
             words = topic.text.strip().replace("#", "").split()
             if not words:
@@ -291,7 +291,7 @@ class MayaApp(App):
             self.get_battery_status(); return
         if "vibrate" in lower:
             self.trigger_vibrate(); return
-        self.set_status("MAYA is thinking...")
+        self.set_status("Maya is thinking...")
         threading.Thread(target=self.fetch_answer, args=(query, self.attached_image), daemon=True).start()
 
     def fetch_answer(self, query, image_path=None):
@@ -313,7 +313,7 @@ class MayaApp(App):
                 parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(raw).decode("ascii")}})
             contents = history + [{"role": "user", "parts": parts}]
             payload = {
-                "system_instruction": {"parts": [{"text": "You are MAYA, a helpful, accurate multilingual AI assistant. Reply in the user's language. Explain clearly, admit uncertainty, and use Google Search for current facts. If an image is attached, describe and analyze it carefully."}]},
+                "system_instruction": {"parts": [{"text": "You are Maya, a helpful, accurate multilingual AI assistant. Reply in the user's language. Explain clearly, admit uncertainty, and use Google Search for current facts. If an image is attached, describe and analyze it carefully."}]},
                 "contents": contents,
                 "tools": [{"google_search": {}}],
                 "generationConfig": {"temperature": 0.7, "maxOutputTokens": 1800}
@@ -347,7 +347,7 @@ class MayaApp(App):
         Clock.schedule_once(lambda dt: self.deliver_answer(answer), 0)
 
     def deliver_answer(self, answer):
-        self.set_status("MAYA: " + answer)
+        self.set_status("Maya: " + answer)
         self.speak(answer)
 
     def pick_image(self, *_):
@@ -356,14 +356,14 @@ class MayaApp(App):
             return
         try:
             filechooser.open_file(on_selection=self.image_selected, filters=["*.png", "*.jpg", "*.jpeg", "*.webp"])
-            self.set_status("Choose a photo. Then type what you want MAYA to do with it.")
+            self.set_status("Choose a photo. Then type what you want Maya to do with it.")
         except Exception as exc:
             self.set_status("Could not open photo picker: " + str(exc))
 
     def image_selected(self, selection):
         if selection:
             self.attached_image = selection[0]
-            self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask MAYA about it.")
+            self.set_status("Photo attached: " + os.path.basename(self.attached_image) + ". Now ask Maya about it.")
 
     def toggle_voice_language(self, *_):
         self.voice_language = "en-US" if self.voice_language == "hi-IN" else "hi-IN"
@@ -460,9 +460,9 @@ class MayaApp(App):
     def show_generated_image(self, path):
         layout = BoxLayout(orientation="vertical", padding=8, spacing=8)
         layout.add_widget(KivyImage(source=path, allow_stretch=True, keep_ratio=True))
-        popup = Popup(title="MAYA generated image", content=layout, size_hint=(0.95, 0.9))
+        popup = Popup(title="Maya generated image", content=layout, size_hint=(0.95, 0.9))
         popup.open()
-        self.set_status("Image generated and saved in MAYA's private app storage.")
+        self.set_status("Image generated and saved in Maya's private app storage.")
 
     def calculate(self, *_):
         try:
@@ -530,7 +530,7 @@ class MayaApp(App):
         layout = BoxLayout(orientation="vertical", padding=12, spacing=8)
         entry = TextInput(hint_text="Enter password", password=True, multiline=False)
         layout.add_widget(entry)
-        popup = Popup(title="MAYA password check", content=layout, size_hint=(0.9, 0.35))
+        popup = Popup(title="Maya password check", content=layout, size_hint=(0.9, 0.35))
         def check(*_):
             if entry.text == self.password:
                 self.set_status("Password accepted.")
@@ -541,7 +541,7 @@ class MayaApp(App):
         popup.open()
 
     def help(self, *_):
-        message = ("MAYA AI HELP\n\n"
+        message = ("Maya AI HELP\n\n"
                    "• Ask: Gemini AI with Google Search grounding. Add your own API key in settings.\n"
                    "• Calculator: supports basic arithmetic and parentheses.\n"
                    "• Call, battery, vibration and torch depend on Android permissions and device support.\n"
