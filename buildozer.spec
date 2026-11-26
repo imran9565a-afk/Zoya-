@@ -1,14 +1,14 @@
 [app]
-title = ZOYA
-package.name = zoyaassistant
-package.domain = com.imran.zoya
+title = MAYA
+package.name = mayaassistant
+package.domain = com.imran.maya
 source.dir = .
 source.include_exts = py,kv,png,jpg,atlas,json,txt,svg
 version = 3.0.0
 requirements = python3,kivy==2.1.0,plyer
 orientation = portrait
 fullscreen = 0
-icon.filename = assets/zoya_ai.png
+icon.filename = assets/maya_ai.png
 android.permissions = INTERNET,RECORD_AUDIO,MODIFY_AUDIO_SETTINGS,CALL_PHONE,VIBRATE,CAMERA
 android.api = 35
 android.minapi = 23
