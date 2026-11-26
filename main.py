@@ -222,7 +222,7 @@ class MayaApp(App):
                 with open(audio_path, "wb") as audio_file:
                     audio_file.write(raw)
             else:
-                rate_match = re.search(r"rate=(\\d+)", mime)
+                rate_match = re.search(r"rate=(\d+)", mime)
                 sample_rate = int(rate_match.group(1)) if rate_match else 24000
                 with wave.open(audio_path, "wb") as wav_file:
                     wav_file.setnchannels(1)
